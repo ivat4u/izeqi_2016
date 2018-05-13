@@ -19,8 +19,8 @@ input_size_2=4
 
 batchsize=70
 #load the data
-path = os.getcwd() + '\data\data_train.csv'
-data = pd.read_csv(path, header=None, names=('plotRatio',
+path = os.getcwd() + '\izeqi\data\data_train.txt'
+data = pd.read_csv(path, header=None,delim_whitespace=True, names=('plotRatio',
                                              'transactionDate',
                                              'floorPrice',
                                              'time','price'))
@@ -37,20 +37,18 @@ Y = scalery.transform(Y)
 x_train, x_test, y_train, y_test = train_test_split(X, Y, train_size=0.75, random_state=42)
 
 
-path = os.getcwd() + '\data\time_train.csv'
-data = pd.read_csv(path, header=None, names=('transactionDate',
+path = os.getcwd() + '\izeqi\data\data_time.txt'
+data = pd.read_csv(path, header=None,delim_whitespace=True, names=('transactionDate',
                                              'time'))
 datatime=data.values
 x_train_time= datatime[:, 0:input_size_1].astype(float)
 y_train_time = datatime[:, input_size_1:]
 #need coding
-#x_train_time=x_train[:,0]
-#y_train_time=y_train[:,1]
 
 
 model_time=Sequential()
-model_time.add(Dense(5, activation='relu',kernel_initializer='random_uniform',
-                bias_initializer='',input_shape=(input_size_1,)))
+model_time.add(Dense(5,kernel_initializer='random_uniform',
+                bias_initializer='zeros',input_shape=(input_size_1,)))
 model_time.add(Dense(1))
 sgd = SGD(lr=0.2, momentum=0.8, decay=0.0, nesterov=False)
 model_time.compile(optimizer=sgd,
@@ -102,6 +100,8 @@ Saved=False
 if(Saved==True):
     model_value = load_model('houseer_model.h5')
     model_value.load_weights('houseer_model_weights.h5')
+    model_time = load_model('time_model.h5')
+    model_time.load_weights('time_weights.h5')
 
 # returns a compiled model
 # identical to the previous one
@@ -115,7 +115,8 @@ else:
 
     model_value.save('houseer_model.h5')  # creates a HDF5 file 'my_model.h5'
     model_value.save_weights('houseer_model_weights.h5')
-
+    model_time.save('time_model.h5')
+    model_time.save_weights('time_weights.h5')
 
 
 y_pre=model_value.predict(x_test)
@@ -124,8 +125,8 @@ y_pre = scalery.inverse_transform(y_pre)
 
 
 #load the new data
-path = os.getcwd() + '\data\data_new_1.csv'
-data = pd.read_csv(path, header=None, names=('plotRatio',
+path = os.getcwd() + '\izeqi\data\data_new_1.txt'
+data = pd.read_csv(path, header=None,delim_whitespace=True, names=('plotRatio',
                                              'transactionDate',
                                              'floorPrice',
                                              ))
@@ -133,8 +134,9 @@ data = pd.read_csv(path, header=None, names=('plotRatio',
 
 #transform matrix type
 datanew=data.values
-X_new = datanew[:, :].astype(float)
-X_time=model_time.predict(X_new)
+X_new = datanew[:, ].astype(float)
+X_new_1=X_new[:,1].reshape([-1,1])
+X_time=model_time.predict(X_new_1)
 X_new=np.hstack(X_new,X_time)
 X_new = scalerx.transform(X)
 
