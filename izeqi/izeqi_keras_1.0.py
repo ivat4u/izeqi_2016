@@ -43,16 +43,18 @@ data = pd.read_csv(path, header=None,delim_whitespace=True, names=('transactionD
 datatime=data.values
 x_train_time= datatime[:, 0:input_size_1].astype(float)
 y_train_time = datatime[:, input_size_1:]
-#need coding
+scalertime_x = preprocessing.StandardScaler().fit(x_train_time)
+scalertime_y = preprocessing.StandardScaler().fit(y_train_time)
+x_train_time = scalertime_x.transform(x_train_time)
+y_train_time= scalertime_y.transform(y_train_time)
 
 
 model_time=Sequential()
-model_time.add(Dense(5,kernel_initializer='random_uniform',
-                bias_initializer='zeros',input_shape=(input_size_1,)))
+model_time.add(Dense(input_dim=1, units=5))
 model_time.add(Dense(1))
-sgd = SGD(lr=0.2, momentum=0.8, decay=0.0, nesterov=False)
-model_time.compile(optimizer=sgd,
-              loss='mean_squared_error')
+model_time.add(Activation('relu'))
+model_time.compile(optimizer='sgd',
+              loss='mse')
 
 
 
@@ -91,7 +93,7 @@ model_value.add(Dense(1))
 # For a mean squared error regression problem
 sgd = SGD(lr=0.1, momentum=0.8, decay=0.0, nesterov=False)
 model_value.compile(optimizer=sgd,
-              loss='mean_squared_error',metrics=['accuracy'])
+              loss='mean_squared_error')
 
 
 
@@ -111,7 +113,7 @@ else:
     model_value.fit(x_train, y_train,
                 batch_size=batchsize, epochs=10, shuffle=True,
               callbacks=[early_stopping])
-    model_time.fit(x_train_time,y_train_time)
+    model_time.fit(x_train_time,y_train_time, batch_size=batchsize)
 
     model_value.save('houseer_model.h5')  # creates a HDF5 file 'my_model.h5'
     model_value.save_weights('houseer_model_weights.h5')
@@ -136,21 +138,28 @@ data = pd.read_csv(path, header=None,delim_whitespace=True, names=('plotRatio',
 datanew=data.values
 X_new = datanew[:, ].astype(float)
 X_new_1=X_new[:,1].reshape([-1,1])
-X_time=model_time.predict(X_new_1)
-X_new=np.hstack(X_new,X_time)
-X_new = scalerx.transform(X)
-
-#这里显然不完整，要对月份有个加12的for
-y_pre=model_value.predict(X_new)
-#restore data in test data
-y_pre = scalery.inverse_transform(y_pre)
+X_new_1= scalertime_x.transform(X_new_1)
+get_time1=model_time.predict(X_new_1)
+get_time = scalertime_y.inverse_transform(get_time1)
+X_new=np.hstack((X_new,get_time))
+X_new = scalerx.transform(X_new)
 
 
-#plot the time changge figure
-x1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
-y1=[8000,9000,9500,9200,9300,8900,9300,9350,9300,9400,9600,10000,10048]
-plot.figure(figsize=(7.5,2.3))
-plot.grid()
-plot.xlabel('month')
-plot.ylabel('value')
-plot.show()
+def feedback(X_new):
+    #这里显然不完整，要对月份有个加12的for
+    y_pre=model_value.predict(X_new)
+    #restore data in test data
+    y_pre = scalery.inverse_transform(y_pre)
+
+
+    #plot the time changge figure
+    x1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    y1=[8000,9000,9500,9200,9300,8900,9300,9350,9300,9400,9600,10000,10048]
+    plot.figure(figsize=(7.5,2.3))
+    plot.grid()
+    plot.xlabel('month')
+    plot.ylabel('value')
+    plot.show()
+    return y_pre
+
+a=feedback(X_new)
