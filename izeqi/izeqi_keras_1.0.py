@@ -17,13 +17,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 input_size_1=1
 input_size_2=4
 
-batchsize=70
+batchsize=120
 #load the data
 path = os.getcwd() + '\izeqi\data\data_train.txt'
-data = pd.read_csv(path, header=None,delim_whitespace=True, names=('plotRatio',
-                                             'transactionDate',
-                                             'floorPrice',
-                                             'time','price'))
+data = pd.read_csv(path,header='infer',index_col=0)
 #transform matrix type
 dataset=data.values
 X = dataset[:, 0:input_size_2].astype(float)
@@ -38,9 +35,8 @@ x_train, x_test, y_train, y_test = train_test_split(X, Y, train_size=0.75, rando
 
 
 path = os.getcwd() + '\izeqi\data\data_time.txt'
-data = pd.read_csv(path, header=None,delim_whitespace=True, names=('transactionDate',
-                                             'time'))
-datatime=data.values
+data2 = pd.read_csv(path,header='infer',index_col=0)
+datatime=data2.values
 x_train_time= datatime[:, 0:input_size_1].astype(float)
 y_train_time = datatime[:, input_size_1:]
 scalertime_x = preprocessing.StandardScaler().fit(x_train_time)
@@ -50,9 +46,10 @@ y_train_time= scalertime_y.transform(y_train_time)
 
 
 model_time=Sequential()
-model_time.add(Dense(input_dim=1, units=5))
+model_time.add(Dense(input_dim=1, units=20))
+model_time.add(Activation('sigmoid'))
 model_time.add(Dense(1))
-model_time.add(Activation('relu'))
+
 model_time.compile(optimizer='sgd',
               loss='mse')
 
@@ -61,7 +58,7 @@ model_time.compile(optimizer='sgd',
 #second model to calucate the price
 model_value = Sequential()
 #random init and zero_bias -----input layer of 4 units,and first layer is 17 units
-model_value.add(Dense(17, activation='relu',kernel_initializer='random_uniform',
+model_value.add(Dense(17, activation='sigmoid',kernel_initializer='random_uniform',
                 bias_initializer='zeros',input_shape=(input_size_2,)))
 
 
@@ -111,7 +108,7 @@ if(Saved==True):
 else:
     early_stopping = EarlyStopping(monitor='val_loss', patience=2, mode='auto')
     model_value.fit(x_train, y_train,
-                batch_size=batchsize, epochs=10, shuffle=True,
+                batch_size=batchsize, epochs=8, shuffle=True,
               callbacks=[early_stopping])
     model_time.fit(x_train_time,y_train_time, batch_size=batchsize)
 
@@ -128,20 +125,17 @@ y_pre = scalery.inverse_transform(y_pre)
 
 #load the new data
 path = os.getcwd() + '\izeqi\data\data_new_1.txt'
-data = pd.read_csv(path, header=None,delim_whitespace=True, names=('plotRatio',
-                                             'transactionDate',
-                                             'floorPrice',
-                                             ))
+data3 = pd.read_csv(path,header='infer',index_col=0)
 
 
 #transform matrix type
-datanew=data.values
-X_new = datanew[:, ].astype(float)
-X_new_1=X_new[:,1].reshape([-1,1])
+datanew=data3.values
+X_new_o = datanew[:, ].astype(float)
+X_new_1=X_new_o[:,1].reshape([-1,1])
 X_new_1= scalertime_x.transform(X_new_1)
 get_time1=model_time.predict(X_new_1)
 get_time = scalertime_y.inverse_transform(get_time1)
-X_new=np.hstack((X_new,get_time))
+X_new=np.hstack((X_new_o,get_time))
 X_new = scalerx.transform(X_new)
 
 
