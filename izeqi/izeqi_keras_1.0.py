@@ -1,7 +1,7 @@
 import os,keras
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plot
+import matplotlib.pyplot as plt
 from sklearn.cross_validation import train_test_split
 from keras.models import Sequential
 from keras.layers import Dense, Activation
@@ -15,13 +15,13 @@ from keras.models import load_model
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from sklearn.linear_model import LinearRegression
 from sklearn.externals import joblib
-
+from keras.utils import plot_model
 input_size_1=1
 input_size_2=4
 
 batchsize=80
 #load the data
-path = os.getcwd() + '\izeqi\data\data_train.csv'
+path = os.getcwd() + '\izeqi\data\data_train_1.csv'
 data = pd.read_csv(path,header=None,names=['plotRatio',
                                              'transactionDate',
                                              'floorPrice','time',
@@ -69,9 +69,9 @@ model_time.compile(optimizer='sgd',
 #second model to calucate the price
 model_value = Sequential()
 #random init and zero_bias -----input layer of 4 units,and first layer is 17 units
-model_value.add(Dense(17, activation='selu',kernel_initializer='random_uniform',
+model_value.add(Dense(17,kernel_initializer='random_uniform',
                 bias_initializer='random_uniform',input_shape=(input_size_2,)))
-
+model_value.add(keras.layers.advanced_activations.LeakyReLU(alpha=0.3))
 
 #second dropout layers
 model_value.add(Dense(12))
@@ -84,6 +84,7 @@ model_value.add(Dense(15))
 model_value.add(Dropout(0.1))
 #fifth layers
 model_value.add(Dense(15))
+
 model_value.add(Dropout(0.1))
 #sixth layers
 model_value.add(Dense(15))
@@ -158,16 +159,29 @@ def feedback(X_new):
     y_pre=model_value.predict(X_new)
     #restore data in test data
     y_pre = scalery.inverse_transform(y_pre)
-
-
-    #plot the time changge figure
-    x1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
-    y1=[8000,9000,9500,9200,9300,8900,9300,9350,9300,9400,9600,10000,10048]
-    plot.figure(figsize=(7.5,2.3))
-    plot.grid()
-    plot.xlabel('month')
-    plot.ylabel('value')
-    plot.show()
     return y_pre
 
-a=feedback(X_new)
+
+
+a=np.zeros(shape=(12,len((X_new))))
+for i in range(12):
+        X_new[:, 3] += 1 / 12
+        y_new=feedback(X_new)
+        a[i]=y_new.reshape(1,-1)
+for i in range(X_new.size):
+        # plot the time changge figure
+        x1 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        y1=a[:,i]
+        y1=np.array(y1)
+        y1=y1.T
+        y1=list(y1)
+        fig=plt.figure(figsize=(7.5, 2.3))
+        ax = fig.add_subplot(1, 1, 1)
+        plt.grid()
+        plt.xlim((0, 12))
+        plt.xlabel('month')
+        plt.ylabel('value')
+        plt.xticks(np.linspace(0, 12, 13))
+        plt.plot(x1, y1, 'r')
+        i=str(i)
+        plt.savefig('D:\\fig\\'+i+".jpg")
