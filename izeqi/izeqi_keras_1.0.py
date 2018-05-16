@@ -19,9 +19,9 @@ from keras.utils import plot_model
 input_size_1=1
 input_size_2=4
 
-batchsize=80
+batchsize=100
 #load the data
-path = os.getcwd() + '\izeqi\data\data_train_1.csv'
+path = os.getcwd() + '\izeqi\data\data_train.csv'
 data = pd.read_csv(path,header=None,names=['plotRatio',
                                              'transactionDate',
                                              'floorPrice','time',
@@ -69,32 +69,38 @@ model_time.compile(optimizer='sgd',
 #second model to calucate the price
 model_value = Sequential()
 #random init and zero_bias -----input layer of 4 units,and first layer is 17 units
-model_value.add(Dense(17,kernel_initializer='random_uniform',
+model_value.add(Dense(17,kernel_initializer='random_uniform',activation='selu',
                 bias_initializer='random_uniform',input_shape=(input_size_2,)))
-model_value.add(keras.layers.advanced_activations.LeakyReLU(alpha=0.3))
+
 
 #second dropout layers
 model_value.add(Dense(12))
+
 model_value.add(Dropout(0.1))
 #third layers
 model_value.add(Dense(15))
 model_value.add(Dropout(0.1))
+model_value.add(keras.layers.advanced_activations.LeakyReLU(alpha=0.3))
 #fourth layers
 model_value.add(Dense(15))
+model_value.add(Activation('relu'))
 model_value.add(Dropout(0.1))
 #fifth layers
 model_value.add(Dense(15))
-
+model_value.add(keras.layers.advanced_activations.LeakyReLU(alpha=0.3))
 model_value.add(Dropout(0.1))
 #sixth layers
 model_value.add(Dense(15))
+model_value.add(keras.layers.advanced_activations.LeakyReLU(alpha=0.3))
 #seventh layers
 model_value.add(Dense(15))
+model_value.add(Activation('relu'))
 model_value.add(Dropout(0.1))
 #eighth layers and dropout layers
 model_value.add(Dropout(0.1))
+model_value.add(Activation('selu'))
 model_value.add(Dense(100))
-
+model_value.add(Activation('hard_sigmoid'))
 #last layers_price
 model_value.add(Dense(1))
 
@@ -120,7 +126,7 @@ if(Saved==True):
 else:
     early_stopping = EarlyStopping(monitor='val_loss', patience=3, mode='auto')
     model_value.fit(x_train, y_train,
-                batch_size=batchsize, epochs=8, shuffle=True,
+                batch_size=batchsize, epochs=6, shuffle=True,
               callbacks=[early_stopping])
     joblib.dump(model_time, 'model_time.model')
     #model_time.fit(x_train_time,y_train_time, batch_size=batchsize)
@@ -151,24 +157,25 @@ X_new_1= scalertime_x.transform(X_new_1)
 get_time1=model_time.predict(X_new_1)
 get_time = scalertime_y.inverse_transform(get_time1)
 X_new_o=np.hstack((X_new_o,get_time))
-X_new = scalerx.transform(X_new_o)
-X_new_o = scalerx.inverse_transform(X_new)
 
-def feedback(X_new):
+def feedback(m):
     #这里显然不完整，要对月份有个加12的for
-    y_pre=model_value.predict(X_new)
+    y_pre=model_value.predict(m)
     #restore data in test data
     y_pre = scalery.inverse_transform(y_pre)
     return y_pre
 
 
 
-a=np.zeros(shape=(12,len((X_new))))
+a=np.zeros(shape=(12,len((X_new_o))))
+X_new_a = X_new_o.copy()
 for i in range(12):
-        X_new[:, 3] += 1 / 12
+
+        X_new_a[:, 3]+=1 / 12
+        X_new = scalerx.transform(X_new_a)
         y_new=feedback(X_new)
         a[i]=y_new.reshape(1,-1)
-for i in range(X_new.size):
+for i in range(len(X_new)):
         # plot the time changge figure
         x1 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
         y1=a[:,i]
@@ -182,6 +189,7 @@ for i in range(X_new.size):
         plt.xlabel('month')
         plt.ylabel('value')
         plt.xticks(np.linspace(0, 12, 13))
+        plt.yticks(np.arange(min(y1), max(y1), 102))
         plt.plot(x1, y1, 'r')
         i=str(i)
-        plt.savefig('D:\\fig\\'+i+".jpg")
+        #plt.savefig('D:\\fig\\'+i+".png")

@@ -2,7 +2,7 @@ import  pandas as pd
 import os
 import re
 import numpy as np
-path = os.getcwd() + '\izeqi\data\data_new_1.txt'
+path = os.getcwd() + '\izeqi\show.txt'
 data = pd.read_csv(path, header=None,delim_whitespace=True, names=('plotRatio',
                                              'transactionDate',
                                              'floorPrice',
