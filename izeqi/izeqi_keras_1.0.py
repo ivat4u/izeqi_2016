@@ -69,50 +69,48 @@ model_time.compile(optimizer='sgd',
 #second model to calucate the price
 model_value = Sequential()
 #random init and zero_bias -----input layer of 4 units,and first layer is 17 units
-model_value.add(Dense(17,kernel_initializer='random_uniform',activation='selu',
+model_value.add(Dense(17,kernel_initializer='random_uniform',
                 bias_initializer='random_uniform',input_shape=(input_size_2,)))
-
+model_value.add(keras.layers.advanced_activations.LeakyReLU(alpha=0.3))
 
 #second dropout layers
 model_value.add(Dense(12))
-
+model_value.add(Activation('selu'))
 model_value.add(Dropout(0.1))
 #third layers
 model_value.add(Dense(15))
-model_value.add(Dropout(0.1))
 model_value.add(keras.layers.advanced_activations.LeakyReLU(alpha=0.3))
-#fourth layers
-model_value.add(Dense(15))
-model_value.add(Activation('relu'))
 model_value.add(Dropout(0.1))
+
+
 #fifth layers
 model_value.add(Dense(15))
-model_value.add(keras.layers.advanced_activations.LeakyReLU(alpha=0.3))
 model_value.add(Dropout(0.1))
 #sixth layers
 model_value.add(Dense(15))
-model_value.add(keras.layers.advanced_activations.LeakyReLU(alpha=0.3))
 #seventh layers
 model_value.add(Dense(15))
-model_value.add(Activation('relu'))
+
 model_value.add(Dropout(0.1))
-#eighth layers and dropout layers
-model_value.add(Dropout(0.1))
-model_value.add(Activation('selu'))
 model_value.add(Dense(100))
-model_value.add(Activation('hard_sigmoid'))
+model_value.add(Activation('elu'))
 #last layers_price
+
+model_value.add(Dense(15))
+model_value.add(Dropout(0.1))
+model_value.add(Dense(15))
+model_value.add(Dropout(0.1))
 model_value.add(Dense(1))
 
 # For a mean squared error regression problem
 sgd = SGD(lr=0.01, momentum=0.8, decay=0.0, nesterov=False)
 model_value.compile(optimizer=sgd,
-              loss='mean_squared_error')
+              loss='mae')
 
 
 
 
-Saved=False
+Saved=True
 if(Saved==True):
     model_value = load_model('houseer_model.h5')
     model_value.load_weights('houseer_model_weights.h5')
@@ -167,19 +165,20 @@ def feedback(m):
 
 
 
-a=np.zeros(shape=(12,len((X_new_o))))
+a=np.zeros(shape=(120,len((X_new_o))))
 X_new_a = X_new_o.copy()
-for i in range(12):
+for i in np.arange(0,12,0.1):
 
-        X_new_a[:, 3]+=1 / 12
+        X_new_a[:, 3]+=1 / 120
         X_new = scalerx.transform(X_new_a)
         y_new=feedback(X_new)
-        a[i]=y_new.reshape(1,-1)
+        a[int(i*10)]=y_new.reshape(1,-1)
 for i in range(len(X_new)):
         # plot the time changge figure
-        x1 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        x1 = np.arange(0,12,0.1)
+        x1=x1
         y1=a[:,i]
-        y1=np.array(y1)
+        y1=np.array(y1).astype(int)
         y1=y1.T
         y1=list(y1)
         fig=plt.figure(figsize=(7.5, 2.3))
@@ -189,7 +188,11 @@ for i in range(len(X_new)):
         plt.xlabel('month')
         plt.ylabel('value')
         plt.xticks(np.linspace(0, 12, 13))
-        plt.yticks(np.arange(min(y1), max(y1), 102))
+        plt.yticks(np.arange(min(y1), max(y1), (max(y1)-min(y1))/8))
         plt.plot(x1, y1, 'r')
+        #plt.show()
         i=str(i)
-        #plt.savefig('D:\\fig\\'+i+".png")
+        plt.savefig('D:\\pictures\\'+i+".png")
+
+pd.DataFrame(X_new_o).to_csv("时间表.txt")
+pd.DataFrame(a).to_csv("12个月价格表.txt")
